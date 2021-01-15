@@ -1,12 +1,17 @@
 const { LIMIT_DATA, APP_URL } = process.env
 
 exports.listMovies = (req, res) => {
-  const { page = 1, limit = LIMIT_DATA, search = null } = req.query
+  const { limit = LIMIT_DATA, search = null } = req.query
+  let { page = 1 } = req.query
+  if (typeof (page) !== 'number') {
+    page = Number(page)
+  }
   const data = require('../helpers/listMovies')
-  const paging = (Number(page) * limit) - limit
-  const nextPage = Number(page) + 1
+  const paging = (page * limit) - limit
+  const nextPage = ((page + 1) * limit) - limit
+  const nextPageOffset = limit * nextPage
   let nextPageData = []
-  const offset = limit * Number(page)
+  const offset = limit * page
 
   let results = []
 
@@ -15,10 +20,10 @@ exports.listMovies = (req, res) => {
       console.log(movie.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
       return movie.name.toLocaleLowerCase().includes(search.toLocaleLowerCase())
     })
-    nextPageData = results.slice(nextPage, offset)
+    nextPageData = results.slice(nextPage, nextPageOffset)
     results = results.slice(paging, offset)
   } else {
-    nextPageData = data.slice(nextPage, offset)
+    nextPageData = data.slice(nextPage, nextPageOffset)
     results = data.slice(paging, offset)
   }
 
@@ -28,9 +33,9 @@ exports.listMovies = (req, res) => {
     results,
     pageInfo: {
       totalData: results.length,
-      currentPage: Number(page),
-      nextLink: nextPageData.length > 0 ? `${APP_URL}/movies?page=${Number(page) + 1}` : null,
-      prevLink: page > 1 ? `${APP_URL}/movies?page=${Number(page) - 1}` : null
+      currentPage: page,
+      nextLink: nextPageData.length > 0 ? `${APP_URL}/movies?page=${page + 1}` : null,
+      prevLink: page > 1 ? `${APP_URL}/movies?page=${page - 1}` : null
     }
   })
 }
