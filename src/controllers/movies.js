@@ -8,10 +8,10 @@ exports.listMovies = (req, res) => {
   }
   const data = require('../helpers/listMovies')
   const paging = (page * limit) - limit
-  const nextPage = ((page + 1) * limit) - limit
-  const nextPageOffset = limit * nextPage
-  let nextPageData = []
   const offset = limit * page
+  const nextPage = ((page + 1) * limit) - limit
+  const nextPageOffset = limit * (page + 1)
+  let nextPageData = []
 
   let results = []
 
@@ -24,6 +24,7 @@ exports.listMovies = (req, res) => {
     results = results.slice(paging, offset)
   } else {
     nextPageData = data.slice(nextPage, nextPageOffset)
+    // console.log(nextPageData)
     results = data.slice(paging, offset)
   }
 
