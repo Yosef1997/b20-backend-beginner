@@ -14,6 +14,21 @@ exports.createMovies = (data = {}, cb) => {
   console.log(query.sql)
 }
 
+exports.createMoviesAsync = (data = {}, cb) => {
+  return new Promise((resolve, reject) => {
+    const query = db.query(`
+    INSERT INTO movies
+    (${Object.keys(data).join()})
+    VALUES
+    (${Object.values(data).map(item => `"${item}"`).join(',')})
+    `, (err, res, field) => {
+      if (err) reject(err)
+      resolve(res)
+    })
+    console.log(query.sql)
+  })
+}
+
 exports.getAllMovies = (cb) => {
   const query = db.query('SELECT * FROM movies', (err, res, field) => {
     if (err) throw err
@@ -55,6 +70,22 @@ exports.getMovieByIdAsync = (id, cb) => {
   `, (err, res, field) => {
       if (err) reject(err)
       // console.log(field)
+      resolve(res)
+    })
+    console.log(query.sql)
+  })
+}
+
+exports.getMovieByIdWithGenreAsync = (id) => {
+  return new Promise((resolve, reject) => {
+    const query = db.query(`
+    SELECT m.id, m.name, m.releaseDate, g.name as genreName
+    FROM movies m
+    INNER JOIN movie_genres mg ON m.id=mg.idMovie
+    INNER JOIN genres g ON g.id=mg.idGenre
+    WHERE m.id=${id}
+  `, (err, res, field) => {
+      if (err) reject(err)
       resolve(res)
     })
     console.log(query.sql)

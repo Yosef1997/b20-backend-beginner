@@ -12,7 +12,10 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(morgan('dev'))
 app.use(cors('*'))
 
+app.use('/uploads', express.static('uploads'))
+
 app.use('/movies', require('./src/routes/movies'))
+app.use('/admin/genres', require('./src/routes/adminGenres'))
 
 app.get('/', (request, response) => {
   return response.json({

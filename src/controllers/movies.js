@@ -1,5 +1,9 @@
 // const { LIMIT_DATA, APP_URL } = process.env
 const movieModel = require('../models/movies')
+const genreModel = require('../models/genres')
+const movieGenreModel = require('../models/movieGenres')
+const multer = require('multer')
+const upload = require('../helpers/upload').single('picture')
 
 exports.listMovies = (req, res) => {
   const cond = req.query
@@ -38,22 +42,74 @@ exports.detailMovies = (req, res) => {
 }
 
 exports.createMovies = (req, res) => {
-  const data = req.body
-  movieModel.createMovies(data, (results) => {
-    if (results.affectedRows > 0) {
-      movieModel.getMovieById(results.insertId, (finalResult) => {
-        if (finalResult.length > 0) {
-          return res.json({
-            success: true,
-            message: 'Details of Movie',
-            results: finalResult[0]
-          })
-        }
+  upload(req, res, async err => {
+    const data = req.body
+    const selectedGenre = []
+    if (err instanceof multer.MulterError) {
+      return res.json({
+        success: false,
+        message: 'Error uploading file'
+      })
+    } else if (err) {
+      return res.json({
+        success: false,
+        message: 'Error uploading file'
+      })
+    }
+    if (typeof data.idGenre === 'object') {
+      const results = await genreModel.checkGenresAsync(data.idGenre)
+      if (results.length !== data.idGenre.length) {
+        return res.json({
+          success: false,
+          message: 'Some genre are unavailable'
+        })
+      } else {
+        results.forEach(item => {
+          selectedGenre.push(item.id)
+        })
+      }
+    } else if (typeof data.idGenre === 'string') {
+      const results = await genreModel.checkGenresAsync([data.idGenre])
+      if (results.length !== data.idGenre.length) {
+        return res.json({
+          success: false,
+          message: 'Some genre are unavailable'
+        })
+      } else {
+        results.forEach(item => {
+          selectedGenre.push(item.id)
+        })
+      }
+    }
+    console.log(data)
+    const movieData = {
+      name: data.name,
+      releaseDate: data.releaseDate,
+      picture: (req.file && req.file.path) || null
+    }
+    const initialResult = await movieModel.createMoviesAsync(movieData)
+    if (initialResult.affectedRows > 0) {
+      if (selectedGenre.length > 0) {
+        await movieGenreModel.createBulkMovieGenres(initialResult.insertId, selectedGenre)
+      }
+      const movies = await movieModel.getMovieByIdWithGenreAsync(initialResult.insertId)
+      if (movies.length > 0) {
+        return res.json({
+          success: true,
+          message: 'Movie successfully created',
+          results: {
+            id: movies[0].id,
+            name: movies[0].name,
+            releaseDate: movies[0].releaseDate,
+            genres: movies.map(item => item.genreName)
+          }
+        })
+      } else {
         return res.status(400).json({
           success: false,
           message: 'Failed to create Movie'
         })
-      })
+      }
     }
   })
 }
